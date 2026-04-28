@@ -1,0 +1,92 @@
+@baseUrl = http://localhost:5000
+@apiKey = dev-secret-key-change-me
+
+### Health check (no auth required)
+GET {{baseUrl}}/health
+
+###
+
+### Get all subscriptions
+GET {{baseUrl}}/subscriptions
+X-Api-Key: {{apiKey}}
+
+###
+
+### Get subscription by ID (replace with real ID)
+GET {{baseUrl}}/subscriptions/00000000-0000-0000-0000-000000000000
+X-Api-Key: {{apiKey}}
+
+###
+
+### Get by category
+GET {{baseUrl}}/subscriptions/category/Streaming
+X-Api-Key: {{apiKey}}
+
+###
+
+### Create subscription
+POST {{baseUrl}}/subscriptions
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Netflix",
+  "cost": 15.99,
+  "billingCycle": "Monthly",
+  "category": "Streaming",
+  "renewalDate": "2026-05-15",
+  "status": "Active"
+}
+
+###
+
+### Create annual subscription
+POST {{baseUrl}}/subscriptions
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Adobe Creative Cloud",
+  "cost": 599.88,
+  "billingCycle": "Annual",
+  "category": "Design",
+  "renewalDate": "2026-11-01",
+  "status": "Active"
+}
+
+###
+
+### Update subscription (replace ID)
+PUT {{baseUrl}}/subscriptions/00000000-0000-0000-0000-000000000000
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "status": "Paused"
+}
+
+###
+
+### Delete subscription (replace ID)
+DELETE {{baseUrl}}/subscriptions/00000000-0000-0000-0000-000000000000
+X-Api-Key: {{apiKey}}
+
+###
+
+### Test: missing API key → should return 401
+GET {{baseUrl}}/subscriptions
+
+###
+
+### Test: validation error (empty name)
+POST {{baseUrl}}/subscriptions
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "cost": -5,
+  "billingCycle": "Monthly",
+  "category": "",
+  "renewalDate": "2026-01-01"
+}
