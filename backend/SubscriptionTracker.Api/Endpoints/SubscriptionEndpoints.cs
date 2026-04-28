@@ -1,26 +1,29 @@
 namespace SubscriptionTracker.Api.Endpoints;
 
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using SubscriptionTracker.Api.Data;
 using SubscriptionTracker.Api.Models;
 
 public static class SubscriptionEndpoints
 {
-    private static readonly ConcurrentDictionary<Guid, Subscription> Store = new();
-
     public static void MapSubscriptionEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/subscriptions").WithTags("Subscriptions");
 
-        group.MapGet("/", () => Results.Ok(Store.Values));
+        group.MapGet("/", async (AppDbContext db) =>
+            Results.Ok(await db.Subscriptions.ToListAsync()));
 
-        group.MapGet("/{id:guid}", (Guid id) =>
-            Store.TryGetValue(id, out var sub) ? Results.Ok(sub) : Results.NotFound());
+        group.MapGet("/{id:guid}", async (Guid id, AppDbContext db) =>
+            await db.Subscriptions.FindAsync(id) is { } sub
+                ? Results.Ok(sub)
+                : Results.NotFound());
 
-        group.MapGet("/category/{category}", (string category) =>
-            Results.Ok(Store.Values.Where(s =>
-                string.Equals(s.Category, category, StringComparison.OrdinalIgnoreCase))));
+        group.MapGet("/category/{category}", async (string category, AppDbContext db) =>
+            Results.Ok(await db.Subscriptions
+                .Where(s => s.Category.ToLower() == category.ToLower())
+                .ToListAsync()));
 
-        group.MapPost("/", (CreateSubscriptionRequest req) =>
+        group.MapPost("/", async (CreateSubscriptionRequest req, AppDbContext db) =>
         {
             if (string.IsNullOrWhiteSpace(req.Name))
                 return Results.BadRequest(new { error = "Name is required" });
@@ -38,23 +41,34 @@ public static class SubscriptionEndpoints
                 RenewalDate = req.RenewalDate,
                 Status = req.Status,
             };
-            Store[sub.Id] = sub;
+            db.Subscriptions.Add(sub);
+            await db.SaveChangesAsync();
             return Results.Created($"/subscriptions/{sub.Id}", sub);
         });
 
-        group.MapPut("/{id:guid}", (Guid id, UpdateSubscriptionRequest req) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateSubscriptionRequest req, AppDbContext db) =>
         {
-            if (!Store.TryGetValue(id, out var sub)) return Results.NotFound();
+            var sub = await db.Subscriptions.FindAsync(id);
+            if (sub is null) return Results.NotFound();
+
             if (req.Name is not null) sub.Name = req.Name;
             if (req.Cost is not null) sub.Cost = req.Cost.Value;
             if (req.BillingCycle is not null) sub.BillingCycle = req.BillingCycle.Value;
             if (req.Category is not null) sub.Category = req.Category;
             if (req.RenewalDate is not null) sub.RenewalDate = req.RenewalDate.Value;
             if (req.Status is not null) sub.Status = req.Status.Value;
+
+            await db.SaveChangesAsync();
             return Results.Ok(sub);
         });
 
-        group.MapDelete("/{id:guid}", (Guid id) =>
-            Store.TryRemove(id, out _) ? Results.NoContent() : Results.NotFound());
+        group.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
+        {
+            var sub = await db.Subscriptions.FindAsync(id);
+            if (sub is null) return Results.NotFound();
+            db.Subscriptions.Remove(sub);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
     }
 }
