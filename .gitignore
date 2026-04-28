@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+*.user
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+*.pyo
+
+# Secrets
+.env
+appsettings.Development.json
