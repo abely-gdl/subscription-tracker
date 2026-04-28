@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "subscription-tracker": {
+      "command": "python",
+      "args": ["C:/Work/ai-sdlc/mcp-server/server.py"],
+      "env": {
+        "API_BASE_URL": "http://localhost:5000",
+        "API_KEY": "dev-secret-key-change-me"
+      }
+    }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:/Work/ai-sdlc/hooks/check_secrets.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python C:/Work/ai-sdlc/hooks/check_python_syntax.py"
+          }
+        ]
+      }
+    ]
+  }
+}
