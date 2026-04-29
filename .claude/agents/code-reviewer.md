@@ -42,6 +42,8 @@ Check for:
 
 ### Step 4 — Write report
 
+Output the review **directly in the conversation**. Do NOT call `gh`, post to GitHub, or use any external commands beyond `git` and file reads.
+
 ```
 ## Code Review — {date}
 
