@@ -16,7 +16,7 @@ Domain: manage personal subscriptions (Netflix, Spotify, etc.) with CRUD, cost a
 ┌──────────────────────────────────────────────────────────────┐
 │                      Claude Code CLI                         │
 │  Skills: /cost-report  /spending-forecast                    │
-│  Sub-agents: budget-advisor                                  │
+│  Sub-agents: api-contract-checker                            │
 │  Hooks: pre-edit secrets check · post-edit Python syntax     │
 └──────────────────────────────┬───────────────────────────────┘
                                │ MCP protocol (stdio)
@@ -47,11 +47,11 @@ ai-sdlc/
 │   ├── commands/
 │   │   ├── cost-report.md     /cost-report skill
 │   │   └── spending-forecast.md  /spending-forecast skill
-│   └── agents/
-│       └── budget-advisor.md  budget-advisor sub-agent
-├── hooks/
-│   ├── check_secrets.py       pre-edit: block hardcoded credentials
-│   └── check_python_syntax.py post-edit: py_compile check on .py files
+│   ├── agents/
+│   │   └── api-contract-checker.md  api-contract-checker sub-agent
+│   └── hooks/
+│       ├── check_secrets.py   pre-edit: block hardcoded credentials
+│       └── post_edit_check.py      post-edit: py_compile for .py, dotnet build for .cs
 ├── backend/
 │   └── SubscriptionTracker.Api/
 │       ├── Data/              EF Core DbContext
@@ -59,7 +59,8 @@ ai-sdlc/
 │       ├── Middleware/        API key auth
 │       └── Models/            Domain types + DTOs
 ├── mcp-server/
-│   ├── server.py              FastMCP server (tools, resources, prompts)
+│   ├── server.py              FastMCP server (tools, resources — registers prompts)
+│   ├── prompts.py             MCP prompt definitions
 │   └── api_client.py          HTTP wrapper for the .NET API
 └── http-tests/
     └── subscriptions.http     VS Code REST Client test file
@@ -173,7 +174,7 @@ Subscription {
 
 | Agent | Description |
 |-------|-------------|
-| `budget-advisor` | Detects duplicate subscriptions, computes billing-switch savings, lists cancellation candidates |
+| `api-contract-checker` | Checks MCP tool definitions in server.py stay in sync with .NET API endpoints — detects field name, route, and type mismatches |
 
 ## Hooks
 

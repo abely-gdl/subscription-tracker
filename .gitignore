@@ -15,3 +15,6 @@ __pycache__/
 # Secrets
 .env
 appsettings.Development.json
+
+# Claude Code local overrides (per-developer)
+.claude/settings.local.json
