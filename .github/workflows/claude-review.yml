@@ -40,4 +40,4 @@ jobs:
             🔴 Critical · 🟡 Warning · 🟢 Suggestion
 
             If no issues found, confirm the code looks good.
-          claude_args: "--max-turns 5"
+          claude_args: "--max-turns 15"
