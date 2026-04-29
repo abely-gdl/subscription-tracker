@@ -31,15 +31,22 @@ jobs:
             Review this pull request for the Subscription Tracker project.
             The codebase has two components: a .NET 9 Minimal API (C#) and a Python MCP server.
 
-            Check the changed files for:
-            - Correctness: async/await usage, missing awaits, proper error handling
-            - Validation: inputs validated before hitting the database
-            - Security: no hardcoded secrets or API keys
-            - Conventions: sealed classes, record DTOs, required on non-nullable strings (C#); logging module used, type hints present (Python)
-            - EF Core: no N+1 queries, FindAsync used for PK lookups
+            Steps:
+            1. Run `gh pr diff` to get the changed files and their diffs.
+            2. Read any relevant source files for additional context.
+            3. Review the changes for:
+               - Correctness: async/await usage, missing awaits, proper error handling
+               - Validation: inputs validated before hitting the database
+               - Security: no hardcoded secrets or API keys
+               - Conventions: sealed classes, record DTOs, required on non-nullable strings (C#); logging module used, type hints present (Python)
+               - EF Core: no N+1 queries, FindAsync used for PK lookups
+            4. Post your findings as a PR review comment using:
+               gh pr review --comment -b "YOUR REVIEW TEXT"
 
-            Post your findings as a PR review comment, grouped by severity:
+            Group findings by severity:
             🔴 Critical · 🟡 Warning · 🟢 Suggestion
 
-            If no issues found, confirm the code looks good.
+            If no issues found, post a comment confirming the code looks good.
+
+            Do NOT delegate to sub-agents. Perform the review directly.
           claude_args: "--max-turns 15"
