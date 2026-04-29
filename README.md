@@ -129,6 +129,7 @@ Type the command directly in the Claude Code prompt:
 | Agent | Description |
 |-------|-------------|
 | `api-contract-checker` | Checks MCP tool definitions stay in sync with .NET API endpoints |
+| `code-reviewer` | Reviews changed C# and Python files for correctness, conventions, and security |
 
 Trigger by asking Claude naturally — no special syntax needed:
 
@@ -138,6 +139,14 @@ Check if the MCP tools are in sync with the API
 
 ```
 I changed the Subscription model — verify nothing is broken between the API and MCP server
+```
+
+```
+Review my recent changes before I commit
+```
+
+```
+Do a code review of the endpoints file
 ```
 
 ---

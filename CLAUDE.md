@@ -16,7 +16,7 @@ Domain: manage personal subscriptions (Netflix, Spotify, etc.) with CRUD, cost a
 ┌──────────────────────────────────────────────────────────────┐
 │                      Claude Code CLI                         │
 │  Skills: /cost-report  /spending-forecast                    │
-│  Sub-agents: api-contract-checker                            │
+│  Sub-agents: api-contract-checker · code-reviewer            │
 │  Hooks: pre-edit secrets check · post-edit Python syntax     │
 └──────────────────────────────┬───────────────────────────────┘
                                │ MCP protocol (stdio)
@@ -48,7 +48,8 @@ ai-sdlc/
 │   │   ├── cost-report.md     /cost-report skill
 │   │   └── spending-forecast.md  /spending-forecast skill
 │   ├── agents/
-│   │   └── api-contract-checker.md  api-contract-checker sub-agent
+│   │   ├── api-contract-checker.md  api-contract-checker sub-agent
+│   │   └── code-reviewer.md         code-reviewer sub-agent
 │   └── hooks/
 │       ├── check_secrets.py   pre-edit: block hardcoded credentials
 │       └── post_edit_check.py      post-edit: py_compile for .py, dotnet build for .cs
@@ -175,6 +176,7 @@ Subscription {
 | Agent | Description |
 |-------|-------------|
 | `api-contract-checker` | Checks MCP tool definitions in server.py stay in sync with .NET API endpoints — detects field name, route, and type mismatches |
+| `code-reviewer` | Reviews changed C# and Python files for correctness, conventions, and security issues |
 
 ## Hooks
 
