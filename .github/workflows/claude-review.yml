@@ -2,61 +2,27 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
-
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  id-token: write
+    types: [opened, synchronize, ready_for_review, reopened]
 
 jobs:
   claude-review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@v1
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          show_full_output: true
-          prompt: |
-            Review this pull request for the Subscription Tracker project.
-            The codebase has two components: a .NET 9 Minimal API (C#) and a Python MCP server.
-
-            Steps:
-            1. Run this exact command to get the PR diff: git diff HEAD^1...HEAD^2
-            2. Read any relevant source files for additional context.
-            3. Review the changes for:
-               - Correctness: async/await usage, missing awaits, proper error handling
-               - Validation: inputs validated before hitting the database
-               - Security: no hardcoded secrets or API keys
-               - Conventions: sealed classes, record DTOs, required on non-nullable strings (C#); logging module used, type hints present (Python)
-               - EF Core: no N+1 queries, FindAsync used for PK lookups
-            4. Write your complete review to the file "review.md" in the current working directory using the Write tool.
-               Use this exact format:
-               ## PR Review
-
-               (findings grouped by 🔴 Critical · 🟡 Warning · 🟢 Suggestion, or "✅ No issues found." if clean)
-
-            Do NOT post to GitHub directly. Do NOT delegate to sub-agents.
-          claude_args: "--max-turns 20"
-
-      - name: Post review comment
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -f review.md ]; then
-            gh pr review --comment -F review.md
-          else
-            echo "Claude did not write review.md"
-            exit 1
-          fi
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+          plugins: 'code-review@claude-code-plugins'
+          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
