@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "subscription-tracker": {
+      "command": "python",
+      "args": ["mcp-server/server.py"],
+      "env": {
+        "API_BASE_URL": "http://localhost:5000"
+      }
+    }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/check_secrets.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/post_edit_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}
