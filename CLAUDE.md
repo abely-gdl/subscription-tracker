@@ -1,71 +1,13 @@
-# Subscription Tracker — Developer Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
 
 AI training project demonstrating Claude Code + MCP integration.
 Domain: manage personal subscriptions (Netflix, Spotify, etc.) with CRUD, cost analysis, and budget advice.
 
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        Developer                             │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ types in Claude Code
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                      Claude Code CLI                         │
-│  Skills: /cost-report  /spending-forecast                    │
-│  Sub-agents: api-contract-checker · code-reviewer            │
-│  Hooks: pre-edit secrets check · post-edit Python syntax     │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ MCP protocol (stdio)
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│              MCP Server  (Python / FastMCP)                  │
-│  6 tools · 4 resources · 2 prompts                           │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ HTTP + X-Api-Key header
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│            .NET 9 Minimal API  (C#)                          │
-│  CRUD /subscriptions  ·  /health                             │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ EF Core
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│              SQLite  (subscriptions.db)                      │
-└──────────────────────────────────────────────────────────────┘
-```
-
-## Directory Structure
-
-```
-ai-sdlc/
-├── .claude/
-│   ├── settings.json          MCP server config + hooks
-│   ├── commands/
-│   │   ├── cost-report.md     /cost-report skill
-│   │   └── spending-forecast.md  /spending-forecast skill
-│   ├── agents/
-│   │   ├── api-contract-checker.md  api-contract-checker sub-agent
-│   │   └── code-reviewer.md         code-reviewer sub-agent
-│   └── hooks/
-│       ├── check_secrets.py   pre-edit: block hardcoded credentials
-│       └── post_edit_check.py      post-edit: py_compile for .py, dotnet build for .cs
-├── backend/
-│   └── SubscriptionTracker.Api/
-│       ├── Data/              EF Core DbContext
-│       ├── Endpoints/         Minimal API route handlers
-│       ├── Middleware/        API key auth
-│       └── Models/            Domain types + DTOs
-├── mcp-server/
-│   ├── server.py              FastMCP server (tools, resources — registers prompts)
-│   ├── prompts.py             MCP prompt definitions
-│   └── api_client.py          HTTP wrapper for the .NET API
-└── http-tests/
-    └── subscriptions.http     VS Code REST Client test file
-```
+The stack is: Claude Code CLI → MCP Server (Python/FastMCP, stdio) → .NET 9 Minimal API → SQLite via EF Core.
 
 ## Prerequisites
 
@@ -73,52 +15,47 @@ ai-sdlc/
 - Python 3.11+
 - Node.js (for MCP Inspector only)
 
-## Starting the Backend
+## Commands
 
 ```bash
+# Start the backend (http://localhost:5000)
 cd backend/SubscriptionTracker.Api
 dotnet run
-# Listens on http://localhost:5000
-```
 
-First run creates `subscriptions.db` automatically via EF Core.
+# Build only (post-edit hook also runs this automatically)
+dotnet build backend/SubscriptionTracker.Api --no-restore
 
-## Starting the MCP Server
-
-```bash
+# Start the MCP server (auto-started by Claude Code via settings.json)
 cd mcp-server
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python server.py
+
+# MCP Inspector (interactive tool/resource/prompt testing)
+npx @modelcontextprotocol/inspector python mcp-server/server.py
+
+# Verify auth
+curl http://localhost:5000/subscriptions                          # → 401
+curl http://localhost:5000/subscriptions -H "X-Api-Key: dev-secret-key-change-me"  # → 200
+curl http://localhost:5000/health                                 # → 200 (no auth)
 ```
 
-The MCP server is configured in `.claude/settings.json` and starts automatically when Claude Code loads.
+## API Authentication Setup
 
-## API Authentication and Secrets
-
-The .NET API requires an `X-Api-Key` header on every request (except `/health`).
-
-**How the key flows:**
+The .NET API requires `X-Api-Key` on every request (except `/health`). Both sides must share the same key value.
 
 | Component | Where the key lives |
 |-----------|-------------------|
 | .NET API (validates) | `appsettings.Development.json` → `"ApiKey"` |
 | MCP server (sends) | `mcp-server/.env` → `API_KEY` |
-| Claude Code → MCP | `.claude/settings.json` → `env.API_KEY` |
 
-Both sides must use the **same value**. The default dev key is `dev-secret-key-change-me`.
-
-**Setup:**
 ```bash
-# .NET side
 cp backend/SubscriptionTracker.Api/appsettings.Development.json.example \
    backend/SubscriptionTracker.Api/appsettings.Development.json
-# Edit and set your ApiKey value
 
-# MCP side
 cp mcp-server/.env.example mcp-server/.env
-# Edit and set the same API_KEY value
+# Edit both files to use the same key value
 ```
 
 Neither file is committed to git.
@@ -127,7 +64,7 @@ Neither file is committed to git.
 
 ```
 Subscription {
-  Id           Guid
+  Id           Guid (EF Core generates on add)
   Name         string (required)
   Cost         decimal
   BillingCycle Monthly | Annual
@@ -137,18 +74,34 @@ Subscription {
 }
 ```
 
-## MCP Tools
+Enums are stored as strings in SQLite (configured via `HasConversion<string>()` in `AppDbContext`). The .NET JSON serializer uses `JsonStringEnumConverter`, so enums serialize as `"Monthly"`, `"Active"`, etc.
 
-| Tool | Description |
-|------|-------------|
-| `get_all_subscriptions` | All subscriptions |
-| `get_subscription` | Single subscription by ID |
-| `add_subscription` | Create new subscription |
-| `update_subscription` | Partial update by ID |
-| `delete_subscription` | Delete by ID |
-| `get_subscriptions_by_category` | Filter by category |
+## Non-obvious Architecture
 
-## MCP Resources
+**MCP → API field mapping**: Python tool parameters use `snake_case` (`billing_cycle`, `renewal_date`); `api_client.py` sends camelCase JSON (`billingCycle`, `renewalDate`). If you add a new field, update both.
+
+**DELETE returns 204**: `api_client.py` checks `response.status_code == 204` (not `raise_for_status`) and returns a bool. All other methods call `raise_for_status()`.
+
+**Monthly cost resource**: Only `Active` subscriptions count. Annual costs are divided by 12 for the monthly-equivalent breakdown in `subscriptions://monthly-cost`.
+
+**Spending forecast**: Monthly subscriptions add cost every month for 12 months. Annual subscriptions add the full cost only in the calendar month where `renewal_date`'s day-of-month matches.
+
+**Port note**: `appsettings.json` binds to `http://localhost:5000`; `launchSettings.json` profiles use 5183/7083. `dotnet run` without a profile uses 5000.
+
+## MCP Surface
+
+**Tools**
+
+| Tool | Maps to |
+|------|---------|
+| `get_all_subscriptions` | `GET /subscriptions` |
+| `get_subscription` | `GET /subscriptions/{id}` |
+| `add_subscription` | `POST /subscriptions` |
+| `update_subscription` | `PUT /subscriptions/{id}` |
+| `delete_subscription` | `DELETE /subscriptions/{id}` |
+| `get_subscriptions_by_category` | `GET /subscriptions/category/{category}` |
+
+**Resources**
 
 | Resource | Description |
 |----------|-------------|
@@ -157,7 +110,7 @@ Subscription {
 | `subscriptions://expiring-soon` | Renewals due within 7 days |
 | `subscriptions://monthly-cost` | Aggregated monthly cost by category |
 
-## MCP Prompts
+**Prompts**
 
 | Prompt | Description |
 |--------|-------------|
@@ -175,7 +128,7 @@ Subscription {
 
 | Agent | Description |
 |-------|-------------|
-| `api-contract-checker` | Checks MCP tool definitions in server.py stay in sync with .NET API endpoints — detects field name, route, and type mismatches |
+| `api-contract-checker` | Checks MCP tool definitions in `server.py` stay in sync with .NET API endpoints — detects field name, route, and type mismatches |
 | `code-reviewer` | Reviews changed C# and Python files for correctness, conventions, and security issues |
 
 ## Hooks
@@ -183,23 +136,7 @@ Subscription {
 | Hook | Trigger | Action |
 |------|---------|--------|
 | Pre-edit | Any file edit | Scans new content for hardcoded credentials; blocks if found |
-| Post-edit | Any file edit | Runs `py_compile` on `.py` files; surfaces syntax errors immediately |
-
-## Testing
-
-```bash
-# MCP Inspector (all tools, resources, prompts)
-npx @modelcontextprotocol/inspector python mcp-server/server.py
-
-# HTTP tests (VS Code REST Client)
-# Open http-tests/subscriptions.http
-
-# Verify auth
-curl http://localhost:5000/subscriptions             # → 401
-curl http://localhost:5000/subscriptions \
-  -H "X-Api-Key: dev-secret-key-change-me"          # → 200
-curl http://localhost:5000/health                    # → 200 (no auth)
-```
+| Post-edit | Any file edit | Runs `py_compile` on `.py` files; runs `dotnet build` on `.cs` files |
 
 ## Conventions
 
