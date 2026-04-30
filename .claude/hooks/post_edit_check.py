@@ -1,7 +1,11 @@
 """Post-edit hook: syntax check for .py files, dotnet build for .cs files."""
 import json
+import logging
 import subprocess
 import sys
+
+logging.basicConfig(stream=sys.stdout, format="%(message)s", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -19,22 +23,22 @@ def main():
             text=True,
         )
         if result.returncode != 0:
-            print(f"Python syntax error in {file_path}:")
-            print(result.stderr)
+            logger.error("Python syntax error in %s:", file_path)
+            logger.error(result.stderr)
             sys.exit(1)
-        print(f"Syntax OK: {file_path}")
+        logger.info("Syntax OK: %s", file_path)
 
     elif file_path.endswith(".cs"):
-        print(f"C# file modified — running dotnet build...")
+        logger.info("C# file modified — running dotnet build...")
         result = subprocess.run(
             ["dotnet", "build", "backend/SubscriptionTracker.Api",
              "--no-restore", "--verbosity", "minimal"],
             capture_output=True,
             text=True,
         )
-        print(result.stdout)
+        logger.info(result.stdout)
         if result.returncode != 0:
-            print(result.stderr)
+            logger.error(result.stderr)
             sys.exit(1)
 
 

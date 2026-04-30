@@ -1,7 +1,11 @@
 """Pre-edit hook: detect hardcoded secrets in files being written."""
 import json
+import logging
 import re
 import sys
+
+logging.basicConfig(stream=sys.stdout, format="%(message)s", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 PATTERNS = [
     re.compile(r'api[_-]?key\s*[:=]\s*["\'][^"\']{8,}["\']', re.IGNORECASE),
@@ -44,10 +48,10 @@ def main():
                 findings.append(f"  Line {line_num}: {line.strip()[:80]}")
 
     if findings:
-        print(f"SECRET DETECTED in {file_path}:")
+        logger.warning("Hardcoded credential detected in %s:", file_path)
         for f in findings:
-            print(f)
-        print("Use .env or appsettings.Development.json for real credentials.")
+            logger.warning(f)
+        logger.warning("Use .env or appsettings.Development.json for real credentials.")
         sys.exit(1)
 
 
