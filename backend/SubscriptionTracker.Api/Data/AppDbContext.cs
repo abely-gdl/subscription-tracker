@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
+        mb.Entity<Subscription>().Property(s => s.Id).ValueGeneratedOnAdd();
         mb.Entity<Subscription>().Property(s => s.BillingCycle).HasConversion<string>();
         mb.Entity<Subscription>().Property(s => s.Status).HasConversion<string>();
     }

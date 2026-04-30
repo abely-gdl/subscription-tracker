@@ -5,7 +5,7 @@ public enum SubscriptionStatus { Active, Paused, Cancelled }
 
 public sealed class Subscription
 {
-    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid Id { get; init; }
     public required string Name { get; set; }
     public decimal Cost { get; set; }
     public BillingCycle BillingCycle { get; set; }
