@@ -32,7 +32,7 @@ jobs:
             The codebase has two components: a .NET 9 Minimal API (C#) and a Python MCP server.
 
             Steps:
-            1. Get the diff by running: git diff origin/master...HEAD
+            1. Run this exact command to get the PR diff: git diff HEAD^1...HEAD^2
             2. Read any relevant source files for additional context.
             3. Review the changes for:
                - Correctness: async/await usage, missing awaits, proper error handling
@@ -40,15 +40,13 @@ jobs:
                - Security: no hardcoded secrets or API keys
                - Conventions: sealed classes, record DTOs, required on non-nullable strings (C#); logging module used, type hints present (Python)
                - EF Core: no N+1 queries, FindAsync used for PK lookups
-            4. Write your complete review to the file /tmp/claude-review.md using the Write tool.
-               Use this format:
+            4. Write your complete review to the file "review.md" in the current working directory using the Write tool.
+               Use this exact format:
                ## PR Review
 
-               🔴 Critical · 🟡 Warning · 🟢 Suggestion
+               (findings grouped by 🔴 Critical · 🟡 Warning · 🟢 Suggestion, or "✅ No issues found." if clean)
 
-               (your findings grouped by severity, or "No issues found." if clean)
-
-            Do NOT post to GitHub. Do NOT delegate to sub-agents. Perform the review directly.
+            Do NOT post to GitHub directly. Do NOT delegate to sub-agents.
           claude_args: "--max-turns 20"
 
       - name: Post review comment
@@ -56,8 +54,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -f /tmp/claude-review.md ]; then
-            gh pr review --comment -F /tmp/claude-review.md
+          if [ -f review.md ]; then
+            gh pr review --comment -F review.md
           else
-            echo "No review file found — Claude did not write /tmp/claude-review.md"
+            echo "Claude did not write review.md"
+            exit 1
           fi
